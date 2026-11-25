@@ -35,29 +35,35 @@ OUTPUT_PATH = os.environ.get("ENTRY_OUTPUT", "/output/entry.txt")
 MAX_CHARS = 200
 
 
-def main() -> None:
-    # Gate self-check: /output/entry.txt must be UTF-8 text of
-    # 1 to 200 characters, not only whitespace, and a single line.
-    # Verified live: 126 characters, one line, no trailing newline.
-    assert 1 <= len(ENTRY) <= MAX_CHARS, (
-        f"entry is {len(ENTRY)} chars, gate wants 1-{MAX_CHARS}"
+def validate_entry(text: str) -> str:
+    """Gate self-check: /output/entry.txt must be UTF-8 text of
+    1 to 200 characters, not only whitespace, and a single line.
+    Verified live: 126 characters, one line, no trailing newline.
+    Returns the validated text unchanged."""
+    assert 1 <= len(text) <= MAX_CHARS, (
+        f"entry is {len(text)} chars, gate wants 1-{MAX_CHARS}"
     )
-    assert "\n" not in ENTRY and "\r" not in ENTRY, "entry must be a single line"
-    assert ENTRY.strip(), "entry must not be only whitespace"
-    assert ENTRY == ENTRY.strip(), "entry must not start or end with whitespace"
-    assert ENTRY.encode("utf-8").decode("utf-8") == ENTRY
+    assert "\n" not in text and "\r" not in text, "entry must be a single line"
+    assert text.strip(), "entry must not be only whitespace"
+    assert text == text.strip(), "entry must not start or end with whitespace"
+    assert text.encode("utf-8").decode("utf-8") == text
+    return text
+
+
+def main() -> None:
+    entry = validate_entry(ENTRY)
     directory = os.path.dirname(OUTPUT_PATH)
     if directory:
         os.makedirs(directory, exist_ok=True)
     with open(OUTPUT_PATH, "wb") as handle:
-        handle.write(ENTRY.encode("utf-8"))
+        handle.write(entry.encode("utf-8"))
     # Read-back verification: the graded artifact is the file on
     # disk, not the string in memory — confirm the bytes landed.
     # No randomness, no clock, no I/O beyond the one write, so a
     # second run reproduces the same 126 bytes exactly.
     with open(OUTPUT_PATH, "rb") as handle:
         written = handle.read()
-    assert written == ENTRY.encode("utf-8"), (
+    assert written == entry.encode("utf-8"), (
         f"entry.txt on disk differs from ENTRY: {written!r}"
     )
 
